@@ -15,6 +15,17 @@ root -l DissectingJetsMetAnalysis/treeSlimmer.C+'("delphes_output.root")'
 #include "TH1.h"
 #include "classes/DelphesClasses.h"
 #include "TCanvas.h"
+#include "TLorentzVector.h"
+
+#include <algorithm>
+#include <vector>
+
+using namespace std;
+
+// for pt ordering objects
+bool ptSorting( TLorentzVector i , TLorentzVector j ){
+  return i.Pt() < j.Pt() ;
+}
 
 void treeSlimmer(const char *inputFile)
 {
@@ -59,13 +70,9 @@ void treeSlimmer(const char *inputFile)
   Long64_t numberOfEntries = treeReader->GetEntries();
 
   // Get pointers to branches used in this analysis
-  //TClonesArray *branchJet = treeReader->UseBranch("Jet");
   TClonesArray *branchFatJet = treeReader->UseBranch("FatJet");
   TClonesArray *branchJet = treeReader->UseBranch("Jet");
-
-  // Book histograms
-  TH1 *histHT = new TH1F("histHT", ";H_{T} [GeV];Events", 100, 0.0, 1000.0);
-  TH1 *histSMJ = new TH1F("histSMJ", ";#Sigma m_{j} [GeV];Events", 100, 40.0, 1000.);
+  TClonesArray *branchMET = treeReader->UseBranch("MissingET");
 
   sumJetMassCalc SMJcalc;
 
@@ -77,12 +84,15 @@ void treeSlimmer(const char *inputFile)
     
     sumJetMass = 0. ;
     HT = 0. ;
+    TLorentzVector MHTvec( 0. , 0. , 0. , 0. ) ;
+    leadJetPt = 0. ;
+    vector< TLorentzVector > skinnyJets ; 
 
     // If event contains at least 1 jet
     if(branchJet->GetEntries() > 0)
     {
 
-      SMJcalc.compute( branchJet ) ;
+      SMJcalc.compute( branchFatJet ) ;
       sumJetMass = SMJcalc.sumJetMass ;
 
       for( int iJet = 0 ; iJet < branchJet->GetEntries() ; iJet++){
@@ -90,16 +100,34 @@ void treeSlimmer(const char *inputFile)
 	Jet *jet = (Jet*) branchJet->At( iJet );
 
 	if( jet->PT > 30. && fabs( jet->Eta ) < 2.5 ){
-	  HT += jet->PT ; 
-	  NJets ++ ; 
+
+	  skinnyJets.push_back( jet->P4() ) ;
+
 	}
 
       }// end loop over individual jets 
 
+      sort( skinnyJets.begin() , skinnyJets.end() , ptSorting);
+
+      NJets = skinnyJets.size() ;
+      
+      if( skinnyJets.size() > 0 )
+	leadJetPt = skinnyJets[0].Pt() ;
+
+      if( skinnyJets.size() > 1 )
+	dEta = fabs( skinnyJets[0].Eta() - skinnyJets[1].Eta() ) ;
+      
+      for( unsigned int iJet = 0 ; iJet < skinnyJets.size() ; iJet++ ){
+	HT += skinnyJets[ iJet ].Pt() ; 
+	MHTvec -= skinnyJets[ iJet ] ;
+      }
+
     }// if branch is good
 
-    histHT->Fill(HT);
-    histSMJ->Fill(sumJetMass);
+    MHT = MHTvec.Pt();
+    MissingET *MET_ = (MissingET*) branchMET->At( 0 ) ;
+    MET = MET_->MET ;
+    mEff = HT + MET ; 
 
     outTree->Fill();
 
@@ -107,12 +135,6 @@ void treeSlimmer(const char *inputFile)
 
   TFile* file = new TFile("outputTest.root","RECREATE");
   outTree->Write();
-
-  // Show resulting histograms
-  TCanvas* c1 = new TCanvas("c1","c1",500,500);
-  histHT->Draw();
-  TCanvas* c2 = new TCanvas("c2","c2",500,500);
-  histSMJ->Draw();
 
 }
 
