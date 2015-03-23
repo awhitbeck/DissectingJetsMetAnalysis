@@ -1,13 +1,3 @@
-/*
-Simple macro showing how to access branches from the delphes output root file,
-loop over events, and plot simple quantities such as the jet pt and the di-electron invariant
-mass.
-
-gSystem->Load("libDelphes");
-root -l DissectingJetsMetAnalysis/treeSlimmer.C+'("delphes_output.root")'
-*/
-
-//------------------------------------------------------------------------------
 #include "examples/sumJetMassCalc.cc"
 #include "TClonesArray.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
@@ -33,6 +23,7 @@ void treeSlimmer(const char *inputFile)
 
   TTree* outTree = new TTree("analysisTree","");
 
+  //defining tree structure - - - - - - - - 
   double HT = 0. ;
   double MHT = 0. ;
   double MET = 0. ;
@@ -60,6 +51,7 @@ void treeSlimmer(const char *inputFile)
   outTree->Branch("alphaT",&alphaT,"alphaT/D");
   outTree->Branch("mT2skinny",&mT2skinny,"mT2skinny/D");
   outTree->Branch("mT2fatjets",&mT2fatjets,"mT2fatjets/D");
+  // - - - - - - - - - - - - - - - - - - - -
 
   // Create chain of root trees
   TChain chain("Delphes");
@@ -86,7 +78,8 @@ void treeSlimmer(const char *inputFile)
     HT = 0. ;
     TLorentzVector MHTvec( 0. , 0. , 0. , 0. ) ;
     leadJetPt = 0. ;
-    vector< TLorentzVector > skinnyJets ; 
+    vector< TLorentzVector > skinnyJets_pt30eta25 ; 
+    vector< TLorentzVector > skinnyJets_pt30eta50 ; 
 
     // If event contains at least 1 jet
     if(branchJet->GetEntries() > 0)
@@ -99,40 +92,60 @@ void treeSlimmer(const char *inputFile)
 
 	Jet *jet = (Jet*) branchJet->At( iJet );
 
+	//save jets with relevant kinematics ==========
 	if( jet->PT > 30. && fabs( jet->Eta ) < 2.5 ){
-
-	  skinnyJets.push_back( jet->P4() ) ;
-
+	  skinnyJets_pt30eta25.push_back( jet->P4() ) ;
 	}
+
+	if( jet->PT > 30. && fabs( jet->Eta ) < 5.0 ){
+	  skinnyJets_pt30eta50.push_back( jet->P4() ) ;
+	}
+	// ============================================
 
       }// end loop over individual jets 
 
-      sort( skinnyJets.begin() , skinnyJets.end() , ptSorting);
+      // make sure that the jets are pt ordered
+      sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
+      sort( skinnyJets_pt30eta50.begin() , skinnyJets_pt30eta50.end() , ptSorting);
 
-      NJets = skinnyJets.size() ;
+      // get number of jets
+      NJets = skinnyJets_pt30eta25.size() ;
       
-      if( skinnyJets.size() > 0 )
-	leadJetPt = skinnyJets[0].Pt() ;
+      // get leading jet pt
+      if( skinnyJets_pt30eta25.size() > 0 )
+	leadJetPt = skinnyJets_pt30eta25[0].Pt() ;
+      
+      // get deltaEta of two leading jets
+      if( skinnyJets_pt30eta25.size() > 1 )
+	dEta = fabs( skinnyJets_pt30eta25[0].Eta() - skinnyJets_pt30eta25[1].Eta() ) ;
 
-      if( skinnyJets.size() > 1 )
-	dEta = fabs( skinnyJets[0].Eta() - skinnyJets[1].Eta() ) ;
-      
-      for( unsigned int iJet = 0 ; iJet < skinnyJets.size() ; iJet++ ){
-	HT += skinnyJets[ iJet ].Pt() ; 
-	MHTvec -= skinnyJets[ iJet ] ;
+      // loop over all jets with pt>30 and |eta|<2.5
+      for( unsigned int iJet = 0 ; iJet < skinnyJets_pt30eta25.size() ; iJet++ ){
+	HT += skinnyJets_pt30eta25[ iJet ].Pt() ; 
+      }
+
+      // loop over all jets with pt>30 and |eta|<5.0
+      for( unsigned int iJet = 0 ; iJet < skinnyJets_pt30eta50.size() ; iJet++ ){
+	HT += skinnyJets_pt30eta50[ iJet ].Pt() ; 
+	MHTvec -= skinnyJets_pt30eta50[ iJet ] ;
       }
 
     }// if branch is good
 
     MHT = MHTvec.Pt();
     MissingET *MET_ = (MissingET*) branchMET->At( 0 ) ;
+    // this is a hilariously confusing line.  MET_ is the Delphes MissingET object, 
+    // MET_->MET is the actually MET variable computed by Delphes, MET is the local 
+    // MET variable which is mapped to a branch of the output tree.
     MET = MET_->MET ;
     mEff = HT + MET ; 
 
+    // put event into output tree
     outTree->Fill();
 
   }// end loop over events
 
+  //write output tree
   TFile* file = new TFile("outputTest.root","RECREATE");
   outTree->Write();
 
