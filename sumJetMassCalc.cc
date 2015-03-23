@@ -34,7 +34,7 @@ public:
 
   }
 
-  double compute( TClonesArray* branchJet ){
+  void compute( TClonesArray* branchJet ){
 
     // all variables to zero
     clearVars();
