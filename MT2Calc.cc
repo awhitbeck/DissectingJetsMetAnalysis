@@ -1,5 +1,4 @@
-#include "TClonesArray.h"
-#include "classes/DelphesClasses.h"
+#include "lester_mt2_bisect.h"
 
 class MT2Calc{
 
@@ -7,37 +6,40 @@ public:
 
   double MT2 ; 
   
-  double minJetPt ;
-  double maxJetEta ;
-  double minJetMass ;
-  int    minJets ;
+  MT2Calc();
+  void clearVars();
+  double compute(TLorentzVector vis1 , TLorentzVector vis2,
+		 double METpx , double METpy ,
+		 double mInvis1 , double mInvis2 );
+  
+};
 
-  MT2Calc(double minJetPt_ = 50. ,
-	  double maxJetEta_ = 2.5 ,
-	  double minJetMass_ = 50. ,
-	  int    minJets_ = 2 ){
-    
-    minJetPt = minJetPt_ ; 
-    maxJetEta = maxJetEta_ ; 
-    minJetMass = minJetMass_ ; 
-    minJets = minJets_ ; 
+MT2Calc::MT2Calc(){
 
     clearVars();
 
-  }
+};
 
-  void clearVars(){
+void MT2Calc::clearVars(){
 
     MT2 = 0. ;
 
-  }
+};
 
-  void compute( TClonesArray* branchJet ){
-
-    // all variables to zero
-    clearVars();
-
-  }
+double MT2Calc::compute( TLorentzVector vis1 , TLorentzVector vis2, 
+		       double METpx , double METpy , 
+		       double mInvis1 , double mInvis2 ){
+  
+  // all variables to zero
+  clearVars();
+  
+  MT2 = asymm_mt2_lester_bisect::get_mT2(vis1.M(),vis1.Px(),vis1.Py(),
+					 vis2.M(),vis2.Px(),vis2.Py(),
+					 METpx,METpy,
+					 mInvis1 , mInvis2 , 
+					 0. );
+  
+  return MT2;
 
 };
   

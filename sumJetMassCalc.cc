@@ -34,7 +34,7 @@ public:
 
   }
 
-  void compute( TClonesArray* branchJet ){
+  double compute( TClonesArray* branchJet ){
 
     // all variables to zero
     clearVars();
@@ -51,6 +51,8 @@ public:
     }// end loop over jets
 
     if( numJetMassJets < minJets ) sumJetMass = 0.0 ; 
+
+    return sumJetMass;
 
   }
 
