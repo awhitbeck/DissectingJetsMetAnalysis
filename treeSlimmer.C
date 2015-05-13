@@ -1,4 +1,6 @@
-#include "examples/sumJetMassCalc.cc"
+#include "sumJetMassCalc.cc"
+#include "razorCalc.cc"
+#include "MT2Calc.cc"
 #include "TClonesArray.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
 #include "TChain.h"
@@ -27,30 +29,33 @@ void treeSlimmer(const char *inputFile)
   double HT = 0. ;
   double MHT = 0. ;
   double MET = 0. ;
+  double METphi = 0. ;
   int NJets = 0  ;
+  int NLeptons = 0 ; 
 
   double sumJetMass = 0. ;  
   double leadJetPt = 0. ;
   double mEff = 0. ;
   double dEta = 0. ;
   double alphaT = 0. ;
-  double mT2skinny = 0. ;
-  double mT2fatjets = 0. ;
+  double mT2 = 0. ;
   double mRazor = 0. ; 
   double dRazor = 0. ;
   
   outTree->Branch("HT",&HT,"HT/D");
   outTree->Branch("MHT",&MHT,"MHT/D");
   outTree->Branch("MET",&MET,"MET/D");
+  outTree->Branch("METphi",&METphi,"METphi/D");
   outTree->Branch("NJets",&NJets,"NJets/I");
-
+  outTree->Branch("NLeptons",&NLeptons,"NLeptons/I");
   outTree->Branch("sumJetMass",&sumJetMass,"sumJetMass/D");
   outTree->Branch("leadJetPt",&leadJetPt,"leadJetPt/D");
   outTree->Branch("mEff",&mEff,"mEff/D");
   outTree->Branch("dEta",&dEta,"dEta/D");
   outTree->Branch("alphaT",&alphaT,"alphaT/D");
-  outTree->Branch("mT2skinny",&mT2skinny,"mT2skinny/D");
-  outTree->Branch("mT2fatjets",&mT2fatjets,"mT2fatjets/D");
+  outTree->Branch("mT2",&mT2,"mT2/D");
+  outTree->Branch("mRazor",&mRazor,"mRazor/D");
+  outTree->Branch("dRazor",&dRazor,"dRazor/D");
   // - - - - - - - - - - - - - - - - - - - -
 
   // Create chain of root trees
@@ -65,8 +70,14 @@ void treeSlimmer(const char *inputFile)
   TClonesArray *branchFatJet = treeReader->UseBranch("FatJet");
   TClonesArray *branchJet = treeReader->UseBranch("Jet");
   TClonesArray *branchMET = treeReader->UseBranch("MissingET");
+  TClonesArray *branchMuon = treeReader->UseBranch("Muon");
+  TClonesArray *branchElectron = treeReader->UseBranch("Electron");
 
-  sumJetMassCalc SMJcalc;
+  NLeptons = branchMuon->GetEntries() + branchElectron->GetEntries();
+
+  sumJetMassCalc SMJHelper(0.,10.0,50.,0);
+  razorCalc razorHelper(30.,5.0,0.,2);
+  MT2Calc mt2Helper;
 
   // Loop over all events
   for(Int_t entry = 0; entry < numberOfEntries; ++entry)
@@ -80,17 +91,23 @@ void treeSlimmer(const char *inputFile)
     leadJetPt = 0. ;
     vector< TLorentzVector > skinnyJets_pt30eta25 ; 
     vector< TLorentzVector > skinnyJets_pt30eta50 ; 
-
+    
     // If event contains at least 1 jet
     if(branchJet->GetEntries() > 0)
     {
 
-      SMJcalc.compute( branchFatJet ) ;
-      sumJetMass = SMJcalc.sumJetMass ;
+      SMJHelper.compute( branchFatJet ) ;
+      sumJetMass = SMJHelper.sumJetMass ;
+
+      cout << "--------- new event ------------" << endl;
 
       for( int iJet = 0 ; iJet < branchJet->GetEntries() ; iJet++){
 
 	Jet *jet = (Jet*) branchJet->At( iJet );
+
+	cout << "jet pt: " << jet->PT ;
+	cout << " eta: " << jet->Eta ;
+	cout << " phi: " << jet->Phi << endl;
 
 	//save jets with relevant kinematics ==========
 	if( jet->PT > 30. && fabs( jet->Eta ) < 2.5 ){
@@ -99,15 +116,35 @@ void treeSlimmer(const char *inputFile)
 
 	if( jet->PT > 30. && fabs( jet->Eta ) < 5.0 ){
 	  skinnyJets_pt30eta50.push_back( jet->P4() ) ;
+	  MHTvec -= jet->P4() ;
 	}
 	// ============================================
 
       }// end loop over individual jets 
 
+      MHT = MHTvec.Pt();
+      MissingET *MET_ = (MissingET*) branchMET->At( 0 ) ;
+      // this is a hilariously confusing line.  MET_ is the Delphes MissingET object, 
+      // MET_->MET is the actually MET variable computed by Delphes, MET is the local 
+      // MET variable which is mapped to a branch of the output tree.
+      MET = MET_->MET ;
+      METphi = MET_->Phi;
+      mEff = HT + MET ; 
+      
       // make sure that the jets are pt ordered
       sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
       sort( skinnyJets_pt30eta50.begin() , skinnyJets_pt30eta50.end() , ptSorting);
 
+      // RAZOR variables
+      razorHelper.computeVars( skinnyJets_pt30eta50 , MET*cos(METphi) , MET*sin(METphi) );
+      mRazor = razorHelper.mR;
+      dRazor = razorHelper.R;
+
+      // MT2 
+      mT2 = mt2Helper.compute( razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
+			       MET*cos(METphi) , MET*sin(METphi) , 
+			       0. , 0. );
+     
       // get number of jets
       NJets = skinnyJets_pt30eta25.size() ;
       
@@ -131,14 +168,6 @@ void treeSlimmer(const char *inputFile)
       }
 
     }// if branch is good
-
-    MHT = MHTvec.Pt();
-    MissingET *MET_ = (MissingET*) branchMET->At( 0 ) ;
-    // this is a hilariously confusing line.  MET_ is the Delphes MissingET object, 
-    // MET_->MET is the actually MET variable computed by Delphes, MET is the local 
-    // MET variable which is mapped to a branch of the output tree.
-    MET = MET_->MET ;
-    mEff = HT + MET ; 
 
     // put event into output tree
     outTree->Fill();
