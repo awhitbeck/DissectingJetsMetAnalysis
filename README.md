@@ -32,8 +32,8 @@ considered. </td>
 </tr>
 <tr> 
   <td> sumJetMass </td>
-  <td> sum of fat jet mass. -- Fat jet clustering specifics -- Only fat jets whose pt>50, mass>50, 
-|η|<2.5 are considered.  sumJetMass == 0, if the number of fat jets passing these criteria is <2. </td>
+  <td> sum of fat jet mass. -- Fat jet clustering specifics -- Only fat jets whose pt>0, mass>50, 
+|η|<5.0 are considered. </td>
   <td> double </td> 
 </tr>
 <tr>
@@ -54,7 +54,8 @@ considered. </td>
 </tr>
 <tr>  
   <td> MT2 </td>
-  <td> -- not implemented yet -- </td>
+  <td> As implemented here: http://www.hep.phy.cam.ac.uk/~lester/mt2/.  The input visible jets 
+  are taken to be the same as the 'megajets' used in the razor variables.</td>
   <td> double </td>
 </tr>
 <tr>
@@ -63,13 +64,14 @@ considered. </td>
   <td> double </td>
 </tr>
 <tr>
-  <td> mR </td>
-  <td> -- not implemented yet -- </td>
+  <td> mR (mRazor) </td>
+  <td> Transverse mass of the 'megajets'.  These megajets are found by combining the event into 
+  two jets, the two pairings chosen correspond to the chose which minimizes m1^2+m2^2.</td>
   <td> double </td>
 </tr>
 <tr>
-  <td> R </td> 
-  <td> -- not implemented yet -- </td>
+  <td> R^2 (dRazor) </td> 
+  <td> The square of the ratio of mR and mT.</td>
   <td> double </td>
 </tr>
 </table>
