@@ -1,6 +1,7 @@
 #include "sumJetMassCalc.cc"
 #include "razorCalc.cc"
 #include "MT2Calc.cc"
+#include "alphaTCalc.cc"
 #include "TClonesArray.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
 #include "TChain.h"
@@ -75,9 +76,10 @@ void treeSlimmer(const char *inputFile)
 
   NLeptons = branchMuon->GetEntries() + branchElectron->GetEntries();
 
-  sumJetMassCalc SMJHelper(0.,10.0,50.,0);
-  razorCalc razorHelper(30.,5.0,0.,2);
+  sumJetMassCalc SMJHelper(0.,5.0,50.,0);
+  razorCalc razorHelper(0.,5.0,0.,2);
   MT2Calc mt2Helper;
+  alphaTCalc alphaTHelper;
 
   // Loop over all events
   for(Int_t entry = 0; entry < numberOfEntries; ++entry)
@@ -144,6 +146,10 @@ void treeSlimmer(const char *inputFile)
       mT2 = mt2Helper.compute( razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
 			       MET*cos(METphi) , MET*sin(METphi) , 
 			       0. , 0. );
+
+      // alpha_T
+      alphaT = alphaTHelper.compute( razorHelper.hemispheres[0] , 
+				     razorHelper.hemispheres[1] );
      
       // get number of jets
       NJets = skinnyJets_pt30eta25.size() ;
