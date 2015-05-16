@@ -60,7 +60,8 @@ considered. </td>
 </tr>
 <tr>
   <td> alphaT </td>
-  <td> -- not implemented yet -- </td>
+  <td> Following description here: http://arxiv.org/pdf/1210.8115v2.pdf.  The two visible
+  jets used are taken to be the razor mega jets.  </td>
   <td> double </td>
 </tr>
 <tr>
