@@ -74,8 +74,6 @@ void treeSlimmer(const char *inputFile)
   TClonesArray *branchMuon = treeReader->UseBranch("Muon");
   TClonesArray *branchElectron = treeReader->UseBranch("Electron");
 
-  NLeptons = branchMuon->GetEntries() + branchElectron->GetEntries();
-
   sumJetMassCalc SMJHelper(0.,5.0,50.,0);
   razorCalc razorHelper(0.,5.0,0.,2);
   MT2Calc mt2Helper;
@@ -86,6 +84,8 @@ void treeSlimmer(const char *inputFile)
   {
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
+    
+    NLeptons = branchMuon->GetEntries() + branchElectron->GetEntries();
     
     sumJetMass = 0. ;
     HT = 0. ;
@@ -131,7 +131,7 @@ void treeSlimmer(const char *inputFile)
       // MET variable which is mapped to a branch of the output tree.
       MET = MET_->MET ;
       METphi = MET_->Phi;
-      mEff = HT + MET ; 
+      
       
       // make sure that the jets are pt ordered
       sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
@@ -169,11 +169,12 @@ void treeSlimmer(const char *inputFile)
 
       // loop over all jets with pt>30 and |eta|<5.0
       for( unsigned int iJet = 0 ; iJet < skinnyJets_pt30eta50.size() ; iJet++ ){
-	HT += skinnyJets_pt30eta50[ iJet ].Pt() ; 
 	MHTvec -= skinnyJets_pt30eta50[ iJet ] ;
       }
 
     }// if branch is good
+
+    mEff = HT + MET ; 
 
     // put event into output tree
     outTree->Fill();
