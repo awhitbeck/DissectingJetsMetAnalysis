@@ -15,7 +15,8 @@ public:
   double minJetPt ;
   double maxJetEta ;
   double minJetMass ;
-  int    minJets ;
+  unsigned int    minJets ;
+  bool debug;
 
   vector<TLorentzVector> hemispheres;
   TLorentzVector MET;
@@ -23,7 +24,8 @@ public:
   razorCalc(double minJetPt_ = 50. ,
 	    double maxJetEta_ = 2.5 ,
 	    double minJetMass_ = 50. ,
-	    int    minJets_ = 2 );
+	    int    minJets_ = 2 , 
+	    bool   debug_ = false);
   
   vector<TLorentzVector> getHemispheres(vector<TLorentzVector> jets);
   float computeMR(TLorentzVector hem1, TLorentzVector hem2);

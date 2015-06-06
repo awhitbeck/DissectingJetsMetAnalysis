@@ -4,13 +4,15 @@
 razorCalc::razorCalc(double minJetPt_   ,
 		     double maxJetEta_  ,
 		     double minJetMass_ ,
-		     int    minJets_ ){
-
+		     int    minJets_ ,
+		     bool   debug_ ){
+  
   minJetPt = minJetPt_ ; 
   maxJetEta = maxJetEta_ ; 
   minJetMass = minJetMass_ ; 
   minJets = minJets_ ; 
-  
+  debug = debug_ ;
+
   clearVars();
   
 };
@@ -36,15 +38,17 @@ void razorCalc::computeVars(vector<TLorentzVector> jets, double METpx , double M
   
   hemispheres = getHemispheres(goodJets);
   
-  cout << "-------------" << endl;
-  for( int iHem = 0 ; iHem < hemispheres.size() ; iHem++ ){
+  if( debug ){
+    cout << "-------------" << endl;
+    for( unsigned int iHem = 0 ; iHem < hemispheres.size() ; iHem++ ){
+      
+      cout << "hemisphere " << iHem << endl;
+      cout << "pt: " << hemispheres[iHem].Pt() ;
+      cout << " eta: " << hemispheres[iHem].Eta() ;
+      cout << " phi: " << hemispheres[iHem].Phi() << endl;
     
-    cout << "hemisphere " << iHem << endl;
-    cout << "pt: " << hemispheres[iHem].Pt() ;
-    cout << " eta: " << hemispheres[iHem].Eta() ;
-    cout << " phi: " << hemispheres[iHem].Phi() << endl;
-
-  }
+    }// end loop over hemispheres
+  }  // end debug outputs
   
   MET = TLorentzVector(METpx, METpy, 0.0, 0.0);
   
@@ -66,7 +70,8 @@ vector<TLorentzVector> razorCalc::getHemispheres(vector<TLorentzVector> jets){
   
   int nComb = pow(2, nJets);
 
-  cout << "nComb: " << nComb << endl;
+  if( debug ) 
+    cout << "nComb: " << nComb << endl;
  
   //step 1: store all possible partitions of the input jets
   
@@ -111,8 +116,9 @@ vector<TLorentzVector> razorCalc::getHemispheres(vector<TLorentzVector> jets){
   for(size_t i=0; i < possibleHem1s.size(); i++){
     
     double mTemp = possibleHem1s[i].M2() + possibleHem2s[i].M2();
-
-    cout << "mTemp: " << mTemp << endl;
+    
+    if( debug )
+      cout << "mTemp: " << mTemp << endl;
     
     if(mMin < 0 || mTemp < mMin){
       

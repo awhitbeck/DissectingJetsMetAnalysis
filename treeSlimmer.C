@@ -14,6 +14,7 @@
 #include <vector>
 
 using namespace std;
+bool debug = false;
 
 // for pt ordering objects
 bool ptSorting( TLorentzVector i , TLorentzVector j ){
@@ -101,15 +102,17 @@ void treeSlimmer(const char *inputFile)
       SMJHelper.compute( branchFatJet ) ;
       sumJetMass = SMJHelper.sumJetMass ;
 
-      cout << "--------- new event ------------" << endl;
+      if( debug ) cout << "--------- new event ------------" << endl;
 
       for( int iJet = 0 ; iJet < branchJet->GetEntries() ; iJet++){
 
 	Jet *jet = (Jet*) branchJet->At( iJet );
 
-	cout << "jet pt: " << jet->PT ;
-	cout << " eta: " << jet->Eta ;
-	cout << " phi: " << jet->Phi << endl;
+	if( debug ){
+	  cout << "jet pt: " << jet->PT ;
+	  cout << " eta: " << jet->Eta ;
+	  cout << " phi: " << jet->Phi << endl;
+	}
 
 	//save jets with relevant kinematics ==========
 	if( jet->PT > 30. && fabs( jet->Eta ) < 2.5 ){
@@ -183,6 +186,7 @@ void treeSlimmer(const char *inputFile)
 
   //write output tree
   TFile* file = new TFile("outputTest.root","RECREATE");
+  if(file) file = file ; // dummy line to prevent compiler warnings.
   outTree->Write();
 
 }
