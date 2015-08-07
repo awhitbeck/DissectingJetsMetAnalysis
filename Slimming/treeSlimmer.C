@@ -32,9 +32,11 @@ void treeSlimmer(const char *inputFile)
   double MHT = 0. ;
   double MET = 0. ;
   double METphi = 0. ;
+  double dPhi = -999. ;
+
   int NJets = 0  ;
   int NLeptons = 0 ; 
-
+  
   double sumJetMass = 0. ;  
   double leadJetPt = 0. ;
   double mEff = 0. ;
@@ -48,6 +50,8 @@ void treeSlimmer(const char *inputFile)
   outTree->Branch("MHT",&MHT,"MHT/D");
   outTree->Branch("MET",&MET,"MET/D");
   outTree->Branch("METphi",&METphi,"METphi/D");
+  outTree->Branch("dPhi",&dPhi,"dPhi/D");
+
   outTree->Branch("NJets",&NJets,"NJets/I");
   outTree->Branch("NLeptons",&NLeptons,"NLeptons/I");
   outTree->Branch("sumJetMass",&sumJetMass,"sumJetMass/D");
@@ -135,7 +139,11 @@ void treeSlimmer(const char *inputFile)
       MET = MET_->MET ;
       METphi = MET_->Phi;
       
+      TLorentzVector METp4( MET_->Px , MET_->Py , 0. , 0. );
       
+      if( skinny_pt30eta50.size() == 1 ) dPhi = skinny_pt30eta50[0]->DeltaPhi( METp4 );
+      if( skinny_pt30eta50.size() >= 2 ) dPhi = min( skinny_pt30eta50[0]->DeltaPhi( METp4 ) , skinny_pt30eta50[1]->DeltaPhi( METp4 ) )
+					         
       // make sure that the jets are pt ordered
       sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
       sort( skinnyJets_pt30eta50.begin() , skinnyJets_pt30eta50.end() , ptSorting);
