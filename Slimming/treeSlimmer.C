@@ -139,10 +139,10 @@ void treeSlimmer(const char *inputFile)
       MET = MET_->MET ;
       METphi = MET_->Phi;
       
-      TLorentzVector METp4( MET_->Px , MET_->Py , 0. , 0. );
+      TLorentzVector METp4( MET_->P4() );
       
-      if( skinny_pt30eta50.size() == 1 ) dPhi = skinny_pt30eta50[0]->DeltaPhi( METp4 );
-      if( skinny_pt30eta50.size() >= 2 ) dPhi = min( skinny_pt30eta50[0]->DeltaPhi( METp4 ) , skinny_pt30eta50[1]->DeltaPhi( METp4 ) )
+      if( skinnyJets_pt30eta50.size() == 1 ) dPhi = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+      if( skinnyJets_pt30eta50.size() >= 2 ) dPhi = min( abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) , abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) );
 					         
       // make sure that the jets are pt ordered
       sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
