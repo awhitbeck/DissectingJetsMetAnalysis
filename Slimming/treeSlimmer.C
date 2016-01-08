@@ -1,17 +1,19 @@
+#include "TClonesArray.h"
+#include "TChain.h"
+#include "TH1.h"
+#include "TCanvas.h"
+#include "TLorentzVector.h"
+#include "TSystem.h"
+
+#include <algorithm>
+#include <vector>
+
+#include "classes/DelphesClasses.h"
+#include "external/ExRootAnalysis/ExRootTreeReader.h"
 #include "sumJetMassCalc.cc"
 #include "razorCalc.cc"
 #include "MT2Calc.cc"
 #include "alphaTCalc.cc"
-#include "TClonesArray.h"
-#include "external/ExRootAnalysis/ExRootTreeReader.h"
-#include "TChain.h"
-#include "TH1.h"
-#include "classes/DelphesClasses.h"
-#include "TCanvas.h"
-#include "TLorentzVector.h"
-
-#include <algorithm>
-#include <vector>
 
 using namespace std;
 bool debug = false;
@@ -23,7 +25,6 @@ bool ptSorting( TLorentzVector i , TLorentzVector j ){
 
 void treeSlimmer(const char *inputFile)
 {
-
 
   TTree* outTree = new TTree("analysisTree","");
 
@@ -41,8 +42,10 @@ void treeSlimmer(const char *inputFile)
   double leadJetPt = 0. ;
   double mEff = 0. ;
   double dEta = 0. ;
+  double alphaT_dHThemi = 0. ;
   double alphaT = 0. ;
   double mT2 = 0. ;
+  double mT2_zeroMass = 0. ;
   double mRazor = 0. ; 
   double dRazor = 0. ;
   
@@ -59,7 +62,9 @@ void treeSlimmer(const char *inputFile)
   outTree->Branch("mEff",&mEff,"mEff/D");
   outTree->Branch("dEta",&dEta,"dEta/D");
   outTree->Branch("alphaT",&alphaT,"alphaT/D");
+  outTree->Branch("alphaT_dHThemi",&alphaT_dHThemi,"alphaT_dHThemi/D");
   outTree->Branch("mT2",&mT2,"mT2/D");
+  outTree->Branch("mT2_zeroMass",&mT2_zeroMass,"mT2_zeroMass/D");
   outTree->Branch("mRazor",&mRazor,"mRazor/D");
   outTree->Branch("dRazor",&dRazor,"dRazor/D");
   // - - - - - - - - - - - - - - - - - - - -
@@ -82,6 +87,7 @@ void treeSlimmer(const char *inputFile)
   sumJetMassCalc SMJHelper(0.,5.0,50.,0);
   razorCalc razorHelper(0.,5.0,0.,2);
   MT2Calc mt2Helper;
+  MT2Calc mt2HelperZeroMass(true);
   alphaTCalc alphaTHelper;
 
   // Loop over all events
@@ -133,7 +139,8 @@ void treeSlimmer(const char *inputFile)
 
       MHT = MHTvec.Pt();
       MissingET *MET_ = (MissingET*) branchMET->At( 0 ) ;
-      // this is a hilariously confusing line.  MET_ is the Delphes MissingET object, 
+      // this is a hilariously confusing line.  Let me explain:  
+      // MET_ is the Delphes MissingET object, 
       // MET_->MET is the actually MET variable computed by Delphes, MET is the local 
       // MET variable which is mapped to a branch of the output tree.
       MET = MET_->MET ;
@@ -154,11 +161,16 @@ void treeSlimmer(const char *inputFile)
       dRazor = razorHelper.R;
 
       // MT2 
+      mT2_zeroMass = mt2HelperZeroMass.compute(razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
+					       MET*cos(METphi) , MET*sin(METphi) ,
+					       0. , 0. );
+
       mT2 = mt2Helper.compute( razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
 			       MET*cos(METphi) , MET*sin(METphi) , 
 			       0. , 0. );
 
       // alpha_T
+      alphaT_dHThemi = alphaTHelper.compute( skinnyJets_pt30eta50 );
       alphaT = alphaTHelper.compute( razorHelper.hemispheres[0] , 
 				     razorHelper.hemispheres[1] );
      
