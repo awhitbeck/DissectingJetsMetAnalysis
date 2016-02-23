@@ -59,6 +59,8 @@ void razorCalc::computeVars(vector<TLorentzVector> jets, double METpx , double M
 
 vector<TLorentzVector> razorCalc::getHemispheres(vector<TLorentzVector> jets){
 
+  //cout << "razorCalc::getHemispheres" << endl;
+
   int nJets = jets.size();
   
   vector<TLorentzVector> possibleHem1s; 
@@ -114,7 +116,16 @@ vector<TLorentzVector> razorCalc::getHemispheres(vector<TLorentzVector> jets){
   TLorentzVector myHem2;
   
   for(size_t i=0; i < possibleHem1s.size(); i++){
-    
+
+    /*
+    cout << "ith jet: " << i << endl;
+    cout << " - - - - - - - - - " << endl;
+    cout << "possibleHem1s:" << endl;
+    cout << "pt: " << possibleHem1s[i].Pt() << " eta: " << possibleHem1s[i].Eta() << " phi: " << possibleHem1s[i].Phi() << endl;
+    cout << "possibleHem2s:" << endl;
+    cout << "pt: " << possibleHem2s[i].Pt() << " eta: " << possibleHem2s[i].Eta() << " phi: " << possibleHem2s[i].Phi() << endl;
+    */
+
     double mTemp = possibleHem1s[i].M2() + possibleHem2s[i].M2();
     
     if( debug )

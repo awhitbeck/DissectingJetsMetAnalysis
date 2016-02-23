@@ -3,10 +3,11 @@
 #include "TH1.h"
 #include "TCanvas.h"
 #include "TLorentzVector.h"
-#include "TSystem.h"
+#include "TFile.h"
 
 #include <algorithm>
 #include <vector>
+#include <iostream>
 
 #include "classes/DelphesClasses.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
@@ -34,6 +35,10 @@ void treeSlimmer(const char *inputFile)
   double MET = 0. ;
   double METphi = 0. ;
   double dPhi = -999. ;
+  double dPhi1 = -999. ;
+  double dPhi2 = -999. ; 
+  double dPhi3 = -999. ; 
+  double dPhi4 = -999. ; 
 
   int NJets = 0  ;
   int NLeptons = 0 ; 
@@ -48,13 +53,20 @@ void treeSlimmer(const char *inputFile)
   double mT2_zeroMass = 0. ;
   double mRazor = 0. ; 
   double dRazor = 0. ;
-  
+
+  vector<TLorentzVector> Jets;
+
   outTree->Branch("HT",&HT,"HT/D");
   outTree->Branch("MHT",&MHT,"MHT/D");
   outTree->Branch("MET",&MET,"MET/D");
   outTree->Branch("METphi",&METphi,"METphi/D");
   outTree->Branch("dPhi",&dPhi,"dPhi/D");
+  outTree->Branch("dPhi1",&dPhi1,"dPhi1/D");
+  outTree->Branch("dPhi2",&dPhi2,"dPhi2/D");
+  outTree->Branch("dPhi3",&dPhi3,"dPhi3/D");
+  outTree->Branch("dPhi4",&dPhi4,"dPhi4/D");
 
+  outTree->Branch("Jets",&Jets);
   outTree->Branch("NJets",&NJets,"NJets/I");
   outTree->Branch("NLeptons",&NLeptons,"NLeptons/I");
   outTree->Branch("sumJetMass",&sumJetMass,"sumJetMass/D");
@@ -93,6 +105,7 @@ void treeSlimmer(const char *inputFile)
   // Loop over all events
   for(Int_t entry = 0; entry < numberOfEntries; ++entry)
   {
+
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
     
@@ -104,7 +117,8 @@ void treeSlimmer(const char *inputFile)
     leadJetPt = 0. ;
     vector< TLorentzVector > skinnyJets_pt30eta25 ; 
     vector< TLorentzVector > skinnyJets_pt30eta50 ; 
-    
+    Jets = skinnyJets_pt30eta50;
+
     // If event contains at least 1 jet
     if(branchJet->GetEntries() > 0)
     {
@@ -148,66 +162,153 @@ void treeSlimmer(const char *inputFile)
       
       TLorentzVector METp4( MET_->P4() );
       
-      if( skinnyJets_pt30eta50.size() == 1 ) dPhi = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
-      if( skinnyJets_pt30eta50.size() >= 2 ) dPhi = min( abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) , abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) );
-					         
+      if( skinnyJets_pt30eta50.size() == 1 ){
+	dPhi = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+	dPhi1 = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+      }
+      if( skinnyJets_pt30eta50.size() == 2 ){
+	dPhi1 = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+	dPhi2 = abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) ;
+      }
+      if( skinnyJets_pt30eta50.size() >= 2 ){
+	dPhi = min( abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) , abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) );
+      }
+      if( skinnyJets_pt30eta50.size() == 3 ){
+	dPhi1 = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+	dPhi2 = abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) ;
+	dPhi3 = abs( skinnyJets_pt30eta50[2].DeltaPhi( METp4 ) ) ;
+      }
+      if( skinnyJets_pt30eta50.size() >= 4 ){
+	dPhi1 = abs( skinnyJets_pt30eta50[0].DeltaPhi( METp4 ) ) ;
+	dPhi2 = abs( skinnyJets_pt30eta50[1].DeltaPhi( METp4 ) ) ;
+	dPhi3 = abs( skinnyJets_pt30eta50[2].DeltaPhi( METp4 ) ) ;
+	dPhi4 = abs( skinnyJets_pt30eta50[3].DeltaPhi( METp4 ) ) ;
+      }
       // make sure that the jets are pt ordered
       sort( skinnyJets_pt30eta25.begin() , skinnyJets_pt30eta25.end() , ptSorting);
       sort( skinnyJets_pt30eta50.begin() , skinnyJets_pt30eta50.end() , ptSorting);
 
-      // RAZOR variables
-      razorHelper.computeVars( skinnyJets_pt30eta50 , MET*cos(METphi) , MET*sin(METphi) );
-      mRazor = razorHelper.mR;
-      dRazor = razorHelper.R;
+      if( debug )
+	cout << "computing RAZOR, MT2, and alphaT" << endl;
 
-      // MT2 
-      mT2_zeroMass = mt2HelperZeroMass.compute(razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
-					       MET*cos(METphi) , MET*sin(METphi) ,
-					       0. , 0. );
+      if( skinnyJets_pt30eta50.size() > 1 ){
 
-      mT2 = mt2Helper.compute( razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
-			       MET*cos(METphi) , MET*sin(METphi) , 
-			       0. , 0. );
+	if( debug ){
+	  cout << "MET: " << MET << " METphi: " << " MET*cos(METphi): " << MET*cos(METphi) << endl;
+	  for( unsigned int iTest = 0 ; iTest < skinnyJets_pt30eta50.size() ; iTest++ ){
+	    cout << "skinnyJet Pt: " << skinnyJets_pt30eta50[iTest].Pt() << endl;
+	  }
+	}
+  
 
-      // alpha_T
-      alphaT_dHThemi = alphaTHelper.compute( skinnyJets_pt30eta50 );
-      alphaT = alphaTHelper.compute( razorHelper.hemispheres[0] , 
-				     razorHelper.hemispheres[1] );
-     
+	// RAZOR variables
+	razorHelper.computeVars( skinnyJets_pt30eta50 , MET*cos(METphi) , MET*sin(METphi) );
+	mRazor = razorHelper.mR;
+	dRazor = razorHelper.R;
+
+	if( debug ){ 
+	  cout << "Hemisphere 1: " << razorHelper.hemispheres[0].Pt() << endl;
+	  cout << "Hemisphere 2: " << razorHelper.hemispheres[1].Pt() << endl;
+	  cout << "mR: " << mRazor << " R2: " << dRazor << endl;
+	}
+
+	// MT2 
+	mT2_zeroMass = mt2HelperZeroMass.compute(razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
+						 MET*cos(METphi) , MET*sin(METphi) ,
+						 0. , 0. );
+	
+	mT2 = mt2Helper.compute( razorHelper.hemispheres[0] , razorHelper.hemispheres[1] ,
+				 MET*cos(METphi) , MET*sin(METphi) , 
+				 0. , 0. );
+	
+	if( debug )
+	  cout << "MT2: " << mT2 << " MT2(zero mass): " << mT2_zeroMass << endl;
+
+	// alpha_T
+	alphaT_dHThemi = alphaTHelper.compute( skinnyJets_pt30eta50 );
+	alphaT = alphaTHelper.compute( razorHelper.hemispheres[0] , 
+				       razorHelper.hemispheres[1] );
+	
+	if( debug ) 
+	  cout << "alphaT: " << alphaT << " alphaT_dHThemi: " << alphaT_dHThemi << endl;
+
+      }
+
+      if( debug ) 
+	cout << "done" << endl;
+
+      // get deltaEta of two leading jets
+      if( skinnyJets_pt30eta25.size() > 1 ) 
+	dEta = fabs( skinnyJets_pt30eta25[0].Eta() - skinnyJets_pt30eta25[1].Eta() ) ;
+      
+      if( debug ) 
+	cout << "dEta: " << dEta << endl;
+
       // get number of jets
       NJets = skinnyJets_pt30eta25.size() ;
-      
-      // get leading jet pt
-      if( skinnyJets_pt30eta25.size() > 0 )
-	leadJetPt = skinnyJets_pt30eta25[0].Pt() ;
-      
-      // get deltaEta of two leading jets
-      if( skinnyJets_pt30eta25.size() > 1 )
-	dEta = fabs( skinnyJets_pt30eta25[0].Eta() - skinnyJets_pt30eta25[1].Eta() ) ;
 
+      if( debug ) 
+	cout << "NJets: " << NJets << endl;
+
+      // get leading jet pt
+      if( skinnyJets_pt30eta25.size() > 0 ){
+	leadJetPt = skinnyJets_pt30eta25[0].Pt() ;
+	if( debug ) 
+	  cout << "leadJetPt: " << leadJetPt << endl;
+      }
+      
       // loop over all jets with pt>30 and |eta|<2.5
       for( unsigned int iJet = 0 ; iJet < skinnyJets_pt30eta25.size() ; iJet++ ){
 	HT += skinnyJets_pt30eta25[ iJet ].Pt() ; 
       }
+      if( debug ) 
+	cout << "HT: " << HT << endl;
 
       // loop over all jets with pt>30 and |eta|<5.0
       for( unsigned int iJet = 0 ; iJet < skinnyJets_pt30eta50.size() ; iJet++ ){
 	MHTvec -= skinnyJets_pt30eta50[ iJet ] ;
       }
 
+      if( debug ) 
+	cout << "MHT: " << MHT << endl;
+
     }// if branch is good
 
     mEff = HT + MET ; 
-
+    if( debug ) 
+      cout << "mEff: " << mEff << endl;
+    
     // put event into output tree
     outTree->Fill();
 
   }// end loop over events
 
+  if( debug )
+    cout << "loop over n-events done..." << endl;
+
   //write output tree
   TFile* file = new TFile("outputTest.root","RECREATE");
   if(file) file = file ; // dummy line to prevent compiler warnings.
+  
+  if( debug ) 
+    cout << "write" << endl;
+
   outTree->Write();
+  file->Close();
+
+  //delete file;
+  //delete treeReader;
+  //delete outTree;
 
 }
 
+int main(int argc, char** argv){
+  
+  cout << "verify" << endl;
+  
+  treeSlimmer(argv[1]);
+  cout << "done" << endl;
+
+  return 0;
+
+}

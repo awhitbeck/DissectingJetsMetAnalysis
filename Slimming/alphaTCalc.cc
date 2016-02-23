@@ -35,6 +35,8 @@ public:
 
   vector<TLorentzVector> getHemispheres(vector<TLorentzVector> jets){
 
+    //cout << "alphaTCalc::getHemispheres" << endl;
+
     int nJets = jets.size();
   
     vector<TLorentzVector> possibleHem1s; 
@@ -69,14 +71,23 @@ public:
     
     }// end for loop over nComb
 
-    //step 2: choose the partition that minimizes m1^2 + m2^2
-  
+    //step 2: choose the partition that minimizes m1^2 + m2^2  
     double dHtMin = 1e10;
   
     TLorentzVector myHem1 = possibleHem1s[0] ;
     TLorentzVector myHem2 = possibleHem2s[0] ;
   
     for(size_t i=0; i < possibleHem1s.size(); i++){
+
+      /*
+      cout << "ith jet: " << i << endl;
+      cout << " - - - - - - - - - " << endl;
+      cout << "possibleHem1s:" << endl;
+      cout << "pt: " << possibleHem1s[i].Pt() << " eta: " << possibleHem1s[i].Eta() << " phi: " << possibleHem1s[i].Phi() << endl;
+      cout << "possibleHem2s:" << endl;
+      cout << "pt: " << possibleHem2s[i].Pt() << " eta: " << possibleHem2s[i].Eta() << " phi: " << possibleHem2s[i].Phi() << endl;
+      */
+
       double dHT = fabs( possibleHem1s[i].Pt() - possibleHem2s[i].Pt() );    
       if( dHT < dHtMin ){
 	dHtMin = dHT;
