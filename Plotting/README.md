@@ -13,9 +13,9 @@ git clone https://github.com/awhitbeck/AnalysisTools
 git clone https://github.com/awhitbeck/DissectingJetsMetAnalysis
 
 cd DissectingJetsMetAnalysis/Plotting/src 
-make
+make all
 cd ../script/
-make
+make all
 cd -
 </pre>
 # Plotting distributions
